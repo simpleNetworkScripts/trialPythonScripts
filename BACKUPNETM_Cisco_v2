@@ -1,0 +1,72 @@
+import os
+from netmiko import ConnectHandler
+import time
+import json
+import threading
+import getpass
+
+# Get user input for JSON file path
+json_file_path = input("Enter the path to your devices JSON file: ")
+
+# Get user input for backup parent directory
+backup_parent_directory = input("Enter the path to your backup parent directory: ")
+# Create a subdirectory with the current date and time
+current_datetime = time.strftime("Date-%Y_%m_%d-Time-%H-%M-%S")
+backup_directory = os.path.join(backup_parent_directory, current_datetime)
+# Create the backup directory if it doesn't exist
+os.makedirs(backup_directory, exist_ok=True)
+# Get user input for username
+username = input("Enter the username for all devices: ")
+# Get the common password securely
+common_password = getpass.getpass("Enter the common password for all devices: ")
+# Get the common secret password securely
+common_secret_password = getpass.getpass("Enter the common secret password for all devices: ")
+
+# Function to backup configuration from a device
+def backup_device(device):
+
+    try:
+        connection = ConnectHandler(
+            device_type='cisco_nxos', #replace with your device type
+            ip=device['ip'],
+            username=username,
+            password=common_password,
+            secret=common_secret_password,
+            verbose=True
+        )
+
+        connection.enable()
+
+        # Send command to show running configuration
+        output = connection.send_command("show run", expect_string="#")
+        new_output = output.splitlines()[5:]
+        connection.disconnect()
+
+        # Save the output to a file
+        backup_filename = os.path.join(
+            backup_directory,
+            f"backup_{device['ip']}_{current_datetime}_running.txt"
+        )
+
+        with open(backup_filename, 'w') as file:
+            file.write("\n".join(new_output))  # Write each line in a new_output
+
+        # Print success message
+        print(f"Backup for {device['ip']} completed successfully.\nFile Saved to {backup_filename}")
+    except Exception as e:
+        # Print error message
+        print(f"Failed to backup {device['ip']}: {e}")
+
+# Read the JSON file and backup each device
+with open(json_file_path, 'r') as jsonfile:
+    devices = json.load(jsonfile)
+    threads = []
+
+# create a thread for each device
+    for device in devices:
+        thread = threading.Thread(target=backup_device, args=(device,))
+        threads.append(thread)
+        thread.start()
+
+    for thread in threads:
+        thread.join()
