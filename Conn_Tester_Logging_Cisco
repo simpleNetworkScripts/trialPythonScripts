@@ -1,0 +1,21 @@
+from netmiko import ConnectHandler
+import logging
+
+#logging test for netmiko
+logging.basicConfig(filename='path/to/test-log/test.log', level=logging.DEBUG)
+logger = logging.getLogger("netmiko")
+
+details = {"ip": "your-device-ip", 
+            "username": "your-device-username", 
+            "password": "your-device-password", 
+            "secret": "your-device-secret-password", 
+            "device_type": "your-device-type", 
+            "verbose": True }
+
+connection = ConnectHandler(**details)
+
+#connection.enable()
+
+output = connection.send_command("show running-config")
+print(output)
+connection.disconnect()
