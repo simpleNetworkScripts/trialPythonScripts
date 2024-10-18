@@ -1,0 +1,42 @@
+import os
+from datetime import datetime
+
+def search_and_append_in_folder(folder_path, search_strings_file, append_string):
+    found_files = []
+
+    with open(search_strings_file, 'r') as search_file:
+        search_strings = search_file.read().splitlines()
+
+    for filename in os.listdir(folder_path):
+        if filename.endswith(".txt"):
+            file_path = os.path.join(folder_path, filename)
+            with open(file_path, 'r') as file:
+                lines = file.readlines()
+
+            for i, line in enumerate(lines):
+                for search_string in search_strings:
+                    if search_string in line:
+                        lines[i] = line.rstrip() + append_string + '\n'
+                        if filename not in found_files:
+                            found_files.append(filename)
+
+            with open(file_path, 'w') as file:
+                file.writelines(lines)
+
+    result_file_path = os.path.join(folder_path, f"result_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt")
+    with open(result_file_path, 'w') as result_file:
+       if found_files:
+            result_file.write(f"Files containing the search strings: {', '.join(found_files)}\n")
+            result_file.write(f"The following strings were searched: {', '.join(search_strings)}\n")
+            result_file.write(f"Append string: {append_string}\n")
+       else:
+            result_file.write("Nothing was found\n")
+            result_file.write(f"The following strings were searched: {', '.join(search_strings)}\n")
+
+# Call the function
+
+folder_path = input("Enter the backup folder path: ")
+search_strings_file = input("Enter the path to the text file containing the strings to search: ")
+append_string = ' || <<<<<< look here'
+
+search_and_append_in_folder(folder_path, search_strings_file, append_string)
